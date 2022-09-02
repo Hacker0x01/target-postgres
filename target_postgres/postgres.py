@@ -404,11 +404,26 @@ class PostgresTarget(SQLInterface):
 
         return True
 
+    # Inspired by https://github.com/transferwise/pipelinewise-target-postgres/blob/master/target_postgres/db_sync.py#L162
     def canonicalize_identifier(self, identifier):
         if not identifier:
             identifier = '_'
 
-        return re.sub(r'[^\w\d_$]', '_', identifier.lower())
+        catalog_name = None
+        schema_name = None
+        table_name = identifier
+
+        # Schema and table name can be derived from stream if it's in <schema_nama>-<table_name> format
+        s = identifier.split('-')
+        if len(s) == 2:
+            schema_name = s[0]
+            table_name = s[1]
+        if len(s) > 2:
+            catalog_name = s[0]
+            schema_name = s[1]
+            table_name = '_'.join(s[2:])
+
+        return re.sub(r'[^\w\d_$]', '_', table_name.lower())
 
     def add_key_properties(self, cur, table_name, key_properties):
         if not key_properties:
